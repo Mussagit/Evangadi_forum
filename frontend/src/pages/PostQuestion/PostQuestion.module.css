@@ -1,0 +1,195 @@
+/* PostQuestion - BEM Naming Convention */
+
+.postQuestion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-lg);
+}
+
+@media (min-width: 64rem) {
+  .postQuestion {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    align-items: start;
+  }
+}
+
+.postQuestion__panel {
+  padding: var(--spacing-xl);
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.postQuestion__eyebrow {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.postQuestion__title {
+  font-size: var(--text-3xl);
+}
+
+.postQuestion__description {
+  margin-top: var(--spacing-sm);
+  max-width: 36rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.postQuestion__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+}
+
+.postQuestion__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.postQuestion__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.postQuestion__input,
+.postQuestion__textarea {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-container-low);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.postQuestion__textarea {
+  resize: vertical;
+  min-height: 12rem;
+  line-height: 1.6;
+}
+
+.postQuestion__error {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background-color: var(--error-light);
+  color: var(--error);
+  font-size: var(--text-sm);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.postQuestion__success {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  background-color: var(--success-light);
+  color: var(--success);
+  font-size: var(--text-sm);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.postQuestion__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.postQuestion__coachButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  transition: background-color var(--transition-fast);
+}
+
+.postQuestion__coachButton:hover:not(:disabled) {
+  background-color: var(--primary-light);
+}
+
+.postQuestion__coachButton:disabled,
+.postQuestion__submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.postQuestion__submitButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background-color: var(--primary);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  transition: background-color var(--transition-fast);
+}
+
+.postQuestion__submitButton:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.postQuestion__coachPanel {
+  padding: var(--spacing-lg);
+  background-color: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  height: fit-content;
+  position: sticky;
+  top: var(--spacing-lg);
+}
+
+.postQuestion__coachHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--primary-dark);
+  margin-bottom: var(--spacing-sm);
+}
+
+.postQuestion__coachHeader h3 {
+  font-size: var(--text-base);
+  color: var(--primary-dark);
+}
+
+.postQuestion__coachSummary {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-sm);
+}
+
+.postQuestion__coachTips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding-left: 1.1rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.spin {
+  animation: postQuestionSpin 0.9s linear infinite;
+}
+
+@keyframes postQuestionSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

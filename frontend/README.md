@@ -1,53 +1,16 @@
-# AI-Powered Forum — Frontend
+# React + Vite
 
-React 19 client for the AI-Powered Forum, built with Vite.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Stack
+Currently, two official plugins are available:
 
-- React 19
-- Vite 8
-- Axios (via shared instance in `src/api/axiosInstance.js`)
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## Getting started
+## React Compiler
 
-```bash
-npm install
-npm run dev
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-The dev server starts at `http://localhost:5173`.
+## Expanding the ESLint configuration
 
-## Environment variable
-
-Create `frontend/.env` from the example:
-
-```bash
-cp .env.example .env
-```
-
-```env
-VITE_API_URL=http://localhost:5000/api
-```
-
-## Available scripts
-
-| Script          | Description                          |
-| --------------- | ------------------------------------ |
-| `npm run dev`   | Start the Vite development server    |
-| `npm run build` | Build for production                 |
-| `npm run preview` | Preview the production build       |
-| `npm run lint`  | Run Oxlint                           |
-
-## Project structure
-
-```text
-src/
-├── api/          Shared Axios instance
-├── components/   Reusable UI components
-├── context/      AuthContext and providers
-├── pages/        Route-level page components
-├── routes/       ProtectedRoute and router config
-└── services/     API service functions
-```
-
-See the root [README.md](../README.md) for full project setup and the [CONTRIBUTING.md](../CONTRIBUTING.md) for development guidelines.
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
