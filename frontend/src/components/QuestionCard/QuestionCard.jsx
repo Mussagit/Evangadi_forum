@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
-import { timeAgo, isAuthoredByUser } from '../../lib/utils';
+import { timeAgo, isAuthoredByUser, stripMarkdown } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import UserAvatar from '../UserAvatar/UserAvatar';
 import styles from './QuestionCard.module.css';
 
 /**
@@ -17,8 +18,9 @@ export default function QuestionCard({ question }) {
   const author = question.author || {};
   const authorName = `${author.firstName || ''} ${
     author.lastName || ''
-  }`.trim();
-  const authorLabel = mine ? 'You' : authorName || 'Unknown';
+  }`.trim() || 'Anonymous';
+  const authorLabel = mine ? 'You' : authorName;
+  const cleanPreview = stripMarkdown(question.content);
 
   const goToQuestion = () => {
     navigate(`/questions/${question.questionHash}`);
@@ -41,15 +43,7 @@ export default function QuestionCard({ question }) {
       onClick={goToQuestion}
       onKeyDown={handleKeyDown}
     >
-      <div className={styles.questionCard__avatar}>
-        <img
-          src={`https://ui-avatars.com/api/?name=${
-            author.firstName || 'U'
-          }+${author.lastName || ''}&background=random`}
-          alt={authorName || 'Author'}
-          referrerPolicy='no-referrer'
-        />
-      </div>
+      <UserAvatar name={authorName} size='lg' />
 
       <div className={styles.questionCard__body}>
         <div className={styles.questionCard__headerRow}>
@@ -57,7 +51,7 @@ export default function QuestionCard({ question }) {
           {mine && <span className={styles.questionCard__badge}>Yours</span>}
         </div>
 
-        <p className={styles.questionCard__preview}>{question.content}</p>
+        <p className={styles.questionCard__preview}>{cleanPreview}</p>
 
         <div className={styles.questionCard__meta}>
           <span className={styles.questionCard__replies}>
@@ -72,3 +66,5 @@ export default function QuestionCard({ question }) {
     </article>
   );
 }
+
+

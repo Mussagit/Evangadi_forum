@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, LogOut, Sparkles, Menu, X } from 'lucide-react';
+import UserAvatar from '../UserAvatar/UserAvatar';
 import styles from './Navbar.module.css';
 
 /**
@@ -123,18 +124,10 @@ export default function Navbar({
           <span className={styles['navbar__user-name']}>
             {user ? `${user.firstName} ${user.lastName}` : 'Guest'}
           </span>
-          <div className={styles['navbar__user-avatar']}>
-            <img
-              src={
-                user?.avatar ||
-                `https://ui-avatars.com/api/?name=${
-                  user?.firstName || 'User'
-                }+${user?.lastName || ''}&background=random`
-              }
-              alt='avatar'
-              referrerPolicy='no-referrer'
-            />
-          </div>
+          <UserAvatar
+            name={user ? `${user.firstName} ${user.lastName}` : 'Guest'}
+            size='md'
+          />
         </div>
         {user && (
           <button
