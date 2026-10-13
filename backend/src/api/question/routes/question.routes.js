@@ -7,6 +7,8 @@ import {
   getSimilarQuestionsController,
   generateQuestionDraftCoachController,
   assessAnswerAgainstQuestionController,
+  updateQuestionController,
+  deleteQuestionController,
 } from '../controller/question.controller.js';
 import {
   getQuestionsValidation,
@@ -16,6 +18,8 @@ import {
   similarQuestionsValidation,
   draftCoachValidation,
   answerFitValidation,
+  updateQuestionValidation,
+  deleteQuestionValidation,
 } from '../validations/question.validation.js';
 import { authenticateUser } from '../../../middleware/authentication.js';
 
@@ -94,6 +98,30 @@ router.post(
   authenticateUser,
   answerFitValidation,
   assessAnswerAgainstQuestionController,
+);
+
+/**
+ * @route PATCH /api/questions/:questionHash
+ * @desc Update the title and content of a question (owner only)
+ * @access Protected
+ */
+router.patch(
+  '/:questionHash',
+  authenticateUser,
+  updateQuestionValidation,
+  updateQuestionController,
+);
+
+/**
+ * @route DELETE /api/questions/:questionHash
+ * @desc Permanently delete a question and all its answers (owner only)
+ * @access Protected
+ */
+router.delete(
+  '/:questionHash',
+  authenticateUser,
+  deleteQuestionValidation,
+  deleteQuestionController,
 );
 
 export default router;

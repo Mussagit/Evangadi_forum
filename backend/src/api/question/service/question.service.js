@@ -1,7 +1,7 @@
 import { safeExecute } from '../../../../db/config.js';
 import { generateHash16 } from '../../../utils/hash.js';
 import { embedText, cosineSimilarity } from '../../../utils/ai/gemini.client.js';
-import { NotFoundError } from '../../../utils/errors/index.js';
+import { NotFoundError, ForbiddenError } from '../../../utils/errors/index.js';
 
 const RESULT_LIMIT = 100;
 const DEFAULT_K = 5;
@@ -352,4 +352,90 @@ export const getQuestionByHashService = async questionHash => {
     throw new NotFoundError('Question not found.');
   }
   return rows[0];
+};
+
+/**
+ * Updates a question's title and/or content. Only the question's owner may
+ * edit it. Also refreshes the vector embedding so semantic search stays
+ * accurate.
+ *
+ * @param {Object} data
+ * @param {string} data.questionHash
+ * @param {string} data.title
+ * @param {string} data.content
+ * @param {number} data.userId  - The authenticated user making the request.
+ */
+export const updateQuestionService = async ({ questionHash, title, content, userId }) => {
+  const rows = await safeExecute(
+    'SELECT question_id, user_id FROM questions WHERE question_hash = ?',
+    [questionHash],
+  );
+
+  if (rows.length === 0) {
+    throw new NotFoundError('Question not found.');
+  }
+
+  if (rows[0].user_id !== userId) {
+    throw new ForbiddenError('You can only edit your own questions.');
+  }
+
+  const questionId = rows[0].question_id;
+
+  await safeExecute(
+    'UPDATE questions SET title = ?, content = ?, updated_at = NOW() WHERE question_id = ?',
+    [title, content, questionId],
+  );
+
+  // Best-effort: re-embed the updated title so similarity search stays fresh.
+  try {
+    const embedding = await embedText(title, 'RETRIEVAL_DOCUMENT');
+    await safeExecute(
+      `INSERT INTO question_vectors (question_id, source_text, embedding, status)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE source_text = VALUES(source_text),
+                               embedding   = VALUES(embedding),
+                               status      = VALUES(status)`,
+      [questionId, title, JSON.stringify(embedding), 'ready'],
+    );
+  } catch {
+    // Non-fatal: the text update already succeeded.
+  }
+
+  const updated = await safeExecute(
+    `SELECT q.question_id, q.question_hash, q.title, q.content,
+            q.created_at, q.updated_at,
+            u.user_id AS author_id, u.first_name AS author_first_name, u.last_name AS author_last_name,
+            (SELECT COUNT(*) FROM answers a WHERE a.question_id = q.question_id) AS answer_count
+     FROM questions q
+     JOIN users u ON u.user_id = q.user_id
+     WHERE q.question_id = ?`,
+    [questionId],
+  );
+
+  return formatQuestionRow(updated[0]);
+};
+
+/**
+ * Permanently deletes a question (and its answers + vector via CASCADE).
+ * Only the owner may delete.
+ *
+ * @param {Object} data
+ * @param {string} data.questionHash
+ * @param {number} data.userId
+ */
+export const deleteQuestionService = async ({ questionHash, userId }) => {
+  const rows = await safeExecute(
+    'SELECT question_id, user_id FROM questions WHERE question_hash = ?',
+    [questionHash],
+  );
+
+  if (rows.length === 0) {
+    throw new NotFoundError('Question not found.');
+  }
+
+  if (rows[0].user_id !== userId) {
+    throw new ForbiddenError('You can only delete your own questions.');
+  }
+
+  await safeExecute('DELETE FROM questions WHERE question_id = ?', [rows[0].question_id]);
 };

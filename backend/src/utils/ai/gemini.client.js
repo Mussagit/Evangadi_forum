@@ -1,9 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
 
-const apiKey = process.env.GEMINI_API_KEY;
-const embeddingModel = process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001';
-const textModel = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash-lite';
-
 let client = null;
 
 /**
@@ -12,6 +8,7 @@ let client = null;
  * missing in a local/dev environment.
  */
 function getClient() {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY environment variable is required for AI features');
   }
@@ -29,6 +26,7 @@ function getClient() {
  */
 export async function embedText(text, taskType = 'RETRIEVAL_DOCUMENT') {
   const ai = getClient();
+  const embeddingModel = process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001';
   const result = await ai.models.embedContent({
     model: embeddingModel,
     contents: text,
@@ -42,17 +40,35 @@ export async function embedText(text, taskType = 'RETRIEVAL_DOCUMENT') {
 }
 
 /**
- * Generates free-form text content from a prompt.
+ * Generates free-form text content from a prompt with automatic model fallback.
  * @param {string} prompt
  * @returns {Promise<string>}
  */
 export async function generateText(prompt) {
   const ai = getClient();
-  const response = await ai.models.generateContent({
-    model: textModel,
-    contents: prompt,
-  });
-  return typeof response.text === 'function' ? response.text() : response.text || '';
+  const modelsToTry = [
+    process.env.GEMINI_TEXT_MODEL,
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+  ].filter(Boolean);
+
+  let lastError = null;
+  for (const model of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: prompt,
+      });
+      const text = typeof response.text === 'function' ? response.text() : response.text || '';
+      if (text) return text;
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Gemini generateText] Model ${model} failed, trying next fallback... Error:`, err.message || err);
+    }
+  }
+
+  throw lastError || new Error('All Gemini text models failed');
 }
 
 /**

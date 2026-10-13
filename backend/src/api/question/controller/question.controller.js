@@ -5,6 +5,8 @@ import {
   getSingleQuestionService,
   searchQuestionsSemanticService,
   getSimilarQuestionsService,
+  updateQuestionService,
+  deleteQuestionService,
 } from '../service/question.service.js';
 import {
   generateQuestionDraftCoachService,
@@ -163,6 +165,49 @@ export const assessAnswerAgainstQuestionController = async (req, res, next) => {
       success: true,
       message: 'Answer fit assessed',
       data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handles PATCH /api/questions/:questionHash - updates title and content.
+ * Only the question owner may edit.
+ */
+export const updateQuestionController = async (req, res, next) => {
+  try {
+    const { questionHash } = req.params;
+    const { title, content } = req.body;
+    const userId = req.user.id;
+
+    const question = await updateQuestionService({ questionHash, title, content, userId });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Question updated successfully.',
+      data: question,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Handles DELETE /api/questions/:questionHash - permanently removes a
+ * question and all its answers (via CASCADE).
+ * Only the question owner may delete.
+ */
+export const deleteQuestionController = async (req, res, next) => {
+  try {
+    const { questionHash } = req.params;
+    const userId = req.user.id;
+
+    await deleteQuestionService({ questionHash, userId });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: 'Question deleted successfully.',
     });
   } catch (error) {
     next(error);
