@@ -72,18 +72,18 @@ export function stripMarkdown(md) {
 }
 
 const AVATAR_PALETTES = [
-  { bg: '#67e8f9', color: '#164e63' }, // Cyan (e.g. Abebe Kebede)
-  { bg: '#f43f5e', color: '#ffffff' }, // Rose/Magenta (e.g. Mussie)
-  { bg: '#86efac', color: '#14532d' }, // Mint Green
-  { bg: '#a855f7', color: '#ffffff' }, // Purple
-  { bg: '#38bdf8', color: '#0c4a6e' }, // Sky Blue
-  { bg: '#fb923c', color: '#7c2d12' }, // Warm Orange
-  { bg: '#a3e635', color: '#365314' }, // Lime Green
-  { bg: '#ec4899', color: '#ffffff' }, // Pink
-  { bg: '#6366f1', color: '#ffffff' }, // Indigo
-  { bg: '#14b8a6', color: '#ffffff' }, // Teal
-  { bg: '#f59e0b', color: '#78350f' }, // Amber
-  { bg: '#10b981', color: '#ffffff' }, // Emerald
+  { bg: '#67e8f9', color: '#000000' }, // Cyan (e.g. Abebe Kebede)
+  { bg: '#f43f5e', color: '#000000' }, // Rose/Magenta (e.g. Mussie)
+  { bg: '#86efac', color: '#000000' }, // Mint Green
+  { bg: '#a855f7', color: '#000000' }, // Purple
+  { bg: '#38bdf8', color: '#000000' }, // Sky Blue
+  { bg: '#fb923c', color: '#000000' }, // Warm Orange
+  { bg: '#a3e635', color: '#000000' }, // Lime Green
+  { bg: '#ec4899', color: '#000000' }, // Pink
+  { bg: '#818cf8', color: '#000000' }, // Indigo
+  { bg: '#2dd4bf', color: '#000000' }, // Teal
+  { bg: '#fbbf24', color: '#000000' }, // Amber
+  { bg: '#34d399', color: '#000000' }, // Emerald
 ];
 
 /**

@@ -73,3 +73,106 @@
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
 }
+
+/* ── Delete confirmation modal ────────────────────────────────────────────── */
+
+.myQuestions__deleteModal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.myQuestions__deleteCard {
+  background-color: #ffffff;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: 1.75rem;
+  max-width: 28rem;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.myQuestions__deleteMessage {
+  font-size: 0.9375rem;
+  color: #0f172a;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+
+.myQuestions__deleteError {
+  font-size: 0.8125rem;
+  color: #e11d48;
+  background-color: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-sm, 0.375rem);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.myQuestions__deleteActions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.myQuestions__cancelBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm, 0.375rem);
+  cursor: pointer;
+  transition: background-color var(--transition-fast, 150ms);
+}
+
+.myQuestions__cancelBtn:hover:not(:disabled) {
+  background-color: #e2e8f0;
+}
+
+.myQuestions__cancelBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.myQuestions__confirmBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background-color: #e11d48;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm, 0.375rem);
+  cursor: pointer;
+  transition: background-color var(--transition-fast, 150ms);
+}
+
+.myQuestions__confirmBtn:hover:not(:disabled) {
+  background-color: #be123c;
+}
+
+.myQuestions__confirmBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: myQuestionsSpin 0.9s linear infinite;
+}
+
+@keyframes myQuestionsSpin {
+  to { transform: rotate(360deg); }
+}

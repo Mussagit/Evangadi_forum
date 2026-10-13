@@ -53,8 +53,38 @@ function handleAnswerError(error) {
 }
 
 /**
+ * Updates an answer's content (author only).
+ * @param {number} answerId
+ * @param {string} content
+ */
+async function updateAnswer(answerId, content) {
+  try {
+    const response = await apiClient.patch(`/api/answers/${answerId}`, {
+      content,
+    });
+    return response.data.data;
+  } catch (error) {
+    throw handleAnswerError(error);
+  }
+}
+
+/**
+ * Permanently deletes an answer (author only).
+ * @param {number} answerId
+ */
+async function deleteAnswer(answerId) {
+  try {
+    await apiClient.delete(`/api/answers/${answerId}`);
+  } catch (error) {
+    throw handleAnswerError(error);
+  }
+}
+
+/**
  * Service for handling answer-related requests.
  */
 export const answerService = {
   postAnswer,
+  updateAnswer,
+  deleteAnswer,
 };

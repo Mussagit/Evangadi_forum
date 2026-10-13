@@ -151,6 +151,35 @@ async function getSimilarQuestions(questionHash) {
 }
 
 /**
+ * Updates a question's title and content (owner only).
+ * @param {string} questionHash
+ * @param {{ title: string, content: string }} data
+ */
+async function updateQuestion(questionHash, { title, content }) {
+  try {
+    const response = await apiClient.patch(`/api/questions/${questionHash}`, {
+      title,
+      content,
+    });
+    return response.data.data;
+  } catch (error) {
+    throw handleQuestionError(error);
+  }
+}
+
+/**
+ * Permanently deletes a question (owner only).
+ * @param {string} questionHash
+ */
+async function deleteQuestion(questionHash) {
+  try {
+    await apiClient.delete(`/api/questions/${questionHash}`);
+  } catch (error) {
+    throw handleQuestionError(error);
+  }
+}
+
+/**
  * Service for handling question-related requests.
  */
 export const questionService = {
@@ -161,4 +190,6 @@ export const questionService = {
   getSingleQuestion,
   generateQuestionDraftCoach,
   assessAnswerFit,
+  updateQuestion,
+  deleteQuestion,
 };
