@@ -1,38 +1,46 @@
 /**
- * RAG Documents (Knowledge Base): upload PDFs, list them, and interact with
- * an active document via three tabs - Ask AI, Semantic Search, Preview.
+ * RAG Documents (Knowledge Base): Private PDF library, inline reader,
+ * semantic search, and AI-grounded query in a unified 2-column interface.
  * Data: `ragService`.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Upload,
   FileText,
   Trash2,
   Loader2,
-  Send,
-  Search,
+  Sparkles,
+  UploadCloud,
 } from 'lucide-react';
 import { ragService } from '../../services/rag/rag.service.js';
 import RagAnswerBody from '../../components/RagAnswerBody/RagAnswerBody.jsx';
 import ui from '../../styles/pageStates.module.css';
 import styles from './RagDocuments.module.css';
 
-const TABS = [
-  { id: 'ask', label: 'Ask AI' },
-  { id: 'search', label: 'Search' },
-  { id: 'preview', label: 'Preview' },
-];
-
 export default function RagDocuments() {
   const [documents, setDocuments] = useState([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [listError, setListError] = useState(null);
+
+  // Upload state
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Active document selection
   const [activeDocumentId, setActiveDocumentId] = useState(null);
-  const [activeTab, setActiveTab] = useState('ask');
+
+  // Reader state
+  const [pdfObjectUrl, setPdfObjectUrl] = useState(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [previewError, setPreviewError] = useState(null);
+
+  // Semantic search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchError, setSearchError] = useState(null);
 
   // Ask AI state
   const [askQuery, setAskQuery] = useState('');
@@ -40,25 +48,19 @@ export default function RagDocuments() {
   const [askAnswer, setAskAnswer] = useState(null);
   const [askError, setAskError] = useState(null);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState(null);
-  const [searchError, setSearchError] = useState(null);
-
-  // Preview state
-  const [pdfObjectUrl, setPdfObjectUrl] = useState(null);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [previewError, setPreviewError] = useState(null);
-
-  const activeDocument = documents.find(doc => doc.document_id === activeDocumentId) || null;
+  const activeDocument =
+    documents.find(doc => doc.document_id === activeDocumentId) || null;
 
   async function loadDocuments() {
     setIsLoadingList(true);
     setListError(null);
     try {
       const docs = await ragService.listDocuments();
-      setDocuments(docs || []);
+      const list = docs || [];
+      setDocuments(list);
+      if (list.length > 0 && !activeDocumentId) {
+        setActiveDocumentId(list[0].document_id);
+      }
     } catch (err) {
       setListError(err.message || 'Failed to load documents.');
     } finally {
@@ -70,7 +72,7 @@ export default function RagDocuments() {
     loadDocuments();
   }, []);
 
-  // Reset per-document state and load the preview when switching documents/tabs.
+  // Reset search and AI query on active document change
   useEffect(() => {
     setAskQuery('');
     setAskAnswer(null);
@@ -78,14 +80,15 @@ export default function RagDocuments() {
     setSearchQuery('');
     setSearchResults(null);
     setSearchError(null);
-    setPdfObjectUrl(prevUrl => {
-      if (prevUrl) URL.revokeObjectURL(prevUrl);
-      return null;
-    });
   }, [activeDocumentId]);
 
+  // Load PDF Object URL for Reader when active document changes
   useEffect(() => {
-    if (activeTab !== 'preview' || !activeDocument || activeDocument.status !== 'ready') {
+    if (!activeDocument || activeDocument.status !== 'ready') {
+      setPdfObjectUrl(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
       return undefined;
     }
 
@@ -99,7 +102,7 @@ export default function RagDocuments() {
         objectUrl = await ragService.fetchPdfObjectUrl(activeDocument.document_id);
         if (isMounted) setPdfObjectUrl(objectUrl);
       } catch (err) {
-        if (isMounted) setPreviewError(err.message || 'Failed to load PDF.');
+        if (isMounted) setPreviewError(err.message || 'Failed to load PDF preview.');
       } finally {
         if (isMounted) setIsLoadingPreview(false);
       }
@@ -111,58 +114,55 @@ export default function RagDocuments() {
       isMounted = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, activeDocument?.document_id, activeDocument?.status]);
+  }, [activeDocument?.document_id, activeDocument?.status]);
 
-  async function handleFileSelected(e) {
+  function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== 'application/pdf') {
-      setListError('Only PDF files are supported.');
+      setUploadError('Only PDF files are supported.');
+      setSelectedFile(null);
       e.target.value = '';
+      return;
+    }
+    setUploadError(null);
+    setSelectedFile(file);
+  }
+
+  async function handleUpload() {
+    if (!selectedFile) {
+      setUploadError('Please choose a PDF file first.');
       return;
     }
 
     setIsUploading(true);
-    setListError(null);
+    setUploadError(null);
     try {
-      const uploaded = await ragService.uploadPdf(file);
+      const uploaded = await ragService.uploadPdf(selectedFile);
       setDocuments(prev => [uploaded, ...prev]);
       setActiveDocumentId(uploaded.document_id);
-      setActiveTab('ask');
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
-      setListError(err.message || 'Failed to upload document.');
+      setUploadError(err.message || 'Failed to upload document.');
     } finally {
       setIsUploading(false);
-      e.target.value = '';
     }
   }
 
-  async function handleDelete(documentId) {
+  async function handleDelete(e, documentId) {
+    e.stopPropagation();
     try {
       await ragService.deleteDocument(documentId);
-      setDocuments(prev => prev.filter(doc => doc.document_id !== documentId));
-      if (activeDocumentId === documentId) setActiveDocumentId(null);
+      setDocuments(prev => {
+        const remaining = prev.filter(doc => doc.document_id !== documentId);
+        if (activeDocumentId === documentId) {
+          setActiveDocumentId(remaining[0]?.document_id || null);
+        }
+        return remaining;
+      });
     } catch (err) {
       setListError(err.message || 'Failed to delete document.');
-    }
-  }
-
-  async function handleAsk(e) {
-    e.preventDefault();
-    if (!askQuery.trim() || !activeDocument) return;
-    setIsAsking(true);
-    setAskError(null);
-    try {
-      const result = await ragService.queryDocument(
-        activeDocument.document_id,
-        askQuery.trim(),
-      );
-      setAskAnswer(result);
-    } catch (err) {
-      setAskError(err.message || 'Failed to get an answer.');
-    } finally {
-      setIsAsking(false);
     }
   }
 
@@ -184,222 +184,266 @@ export default function RagDocuments() {
     }
   }
 
+  async function handleAsk(e) {
+    e.preventDefault();
+    if (!askQuery.trim() || !activeDocument) return;
+    setIsAsking(true);
+    setAskError(null);
+    try {
+      const result = await ragService.queryDocument(
+        activeDocument.document_id,
+        askQuery.trim(),
+      );
+      setAskAnswer(result);
+    } catch (err) {
+      setAskError(err.message || 'Could not get an answer.');
+    } finally {
+      setIsAsking(false);
+    }
+  }
+
   return (
     <div className={styles.ragDocuments}>
-      <aside className={styles.ragDocuments__sidebar}>
-        <div className={styles.ragDocuments__sidebarHeader}>
-          <h3 className={styles.ragDocuments__sidebarTitle}>Your documents</h3>
-          <button
-            type='button'
-            className={styles.ragDocuments__uploadButton}
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <Loader2 size={16} className={styles.spin} />
-            ) : (
-              <Upload size={16} />
+      {/* Top Header Card */}
+      <header className={styles.ragDocuments__headerCard}>
+        <p className={styles.ragDocuments__eyebrow}>KNOWLEDGE BASE</p>
+        <h1 className={styles.ragDocuments__title}>Private PDF library</h1>
+        <p className={styles.ragDocuments__description}>
+          Upload study or reference PDFs to your own workspace. Each file is indexed for semantic search and optional AI answers that cite passages from that document only. File size limits apply on the server; other users never see your uploads.
+        </p>
+      </header>
+
+      {/* 2-Column Main Workspace */}
+      <div className={styles.ragDocuments__workspace}>
+        {/* Left Column: Library & Upload */}
+        <aside className={styles.ragDocuments__libraryCard}>
+          <div className={styles.ragDocuments__libraryHeader}>
+            <h2 className={styles.ragDocuments__libraryTitle}>Library</h2>
+            <p className={styles.ragDocuments__librarySubtitle}>
+              Add PDFs here. Processing runs once per upload.
+            </p>
+          </div>
+
+          {/* Upload Drop Area */}
+          <div className={styles.ragDocuments__uploadBox}>
+            <p className={styles.ragDocuments__uploadHint}>
+              Accepted format: PDF. Maximum file size is enforced by the server.
+            </p>
+            <div className={styles.ragDocuments__uploadActions}>
+              <button
+                type='button'
+                className={styles.ragDocuments__chooseBtn}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <FileText size={15} />
+                <span>Choose file</span>
+              </button>
+              <button
+                type='button'
+                className={styles.ragDocuments__uploadBtn}
+                onClick={handleUpload}
+                disabled={isUploading || !selectedFile}
+              >
+                {isUploading ? (
+                  <Loader2 size={15} className={styles.spin} />
+                ) : (
+                  <UploadCloud size={15} />
+                )}
+                <span>{isUploading ? 'Uploading...' : 'Upload'}</span>
+              </button>
+            </div>
+            <p className={styles.ragDocuments__fileNameText}>
+              {selectedFile ? selectedFile.name : 'No file selected.'}
+            </p>
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='application/pdf'
+              hidden
+              onChange={handleFileChange}
+            />
+          </div>
+
+          {uploadError && (
+            <p className={styles.ragDocuments__uploadError}>{uploadError}</p>
+          )}
+
+          {/* Documents List */}
+          <div className={styles.ragDocuments__listSection}>
+            {isLoadingList && (
+              <p className={`${ui.pageStates__message} ${ui['pageStates__message--loading']}`}>
+                Loading documents...
+              </p>
             )}
-            {isUploading ? 'Uploading...' : 'Upload PDF'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type='file'
-            accept='application/pdf'
-            hidden
-            onChange={handleFileSelected}
-          />
-        </div>
 
-        {isLoadingList && (
-          <p className={`${ui.pageStates__message} ${ui['pageStates__message--loading']}`}>
-            Loading documents...
-          </p>
-        )}
+            {!isLoadingList && listError && (
+              <p className={`${ui.pageStates__message} ${ui['pageStates__message--error']}`}>
+                {listError}
+              </p>
+            )}
 
-        {!isLoadingList && listError && (
-          <p className={`${ui.pageStates__message} ${ui['pageStates__message--error']}`}>
-            {listError}
-          </p>
-        )}
+            {!isLoadingList && !listError && documents.length === 0 && (
+              <p className={styles.ragDocuments__emptyText}>
+                No PDFs uploaded yet.
+              </p>
+            )}
 
-        {!isLoadingList && !listError && documents.length === 0 && (
-          <p className={`${ui.pageStates__message} ${ui['pageStates__message--empty']}`}>
-            No PDFs yet. Upload one to build your knowledge base.
-          </p>
-        )}
+            {!isLoadingList && documents.length > 0 && (
+              <div className={styles.ragDocuments__list}>
+                {documents.map(doc => {
+                  const isActive = doc.document_id === activeDocumentId;
+                  const docTitle = doc.title || doc.filename || 'Untitled document';
 
-        {!isLoadingList && documents.length > 0 && (
-          <ul className={styles.ragDocuments__list}>
-            {documents.map(doc => (
-              <li key={doc.document_id}>
-                <button
-                  type='button'
-                  className={`${styles.ragDocuments__listItem} ${
-                    doc.document_id === activeDocumentId
-                      ? styles['ragDocuments__listItem--active']
-                      : ''
-                  }`}
-                  onClick={() => setActiveDocumentId(doc.document_id)}
-                >
-                  <FileText size={16} className={styles.ragDocuments__listIcon} />
-                  <span className={styles.ragDocuments__listName}>
-                    {doc.title || doc.filename || 'Untitled document'}
-                  </span>
-                  {doc.status === 'processing' && (
-                    <span className={styles.ragDocuments__badgePending}>
-                      Processing
-                    </span>
-                  )}
-                  {doc.status === 'failed' && (
-                    <span className={styles.ragDocuments__badgePending}>
-                      Failed
-                    </span>
-                  )}
-                </button>
-                <button
-                  type='button'
-                  className={styles.ragDocuments__deleteButton}
-                  onClick={() => handleDelete(doc.document_id)}
-                  aria-label='Delete document'
-                >
-                  <Trash2 size={14} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </aside>
+                  return (
+                    <div
+                      key={doc.document_id}
+                      className={`${styles.ragDocuments__docItem} ${
+                        isActive ? styles['ragDocuments__docItem--active'] : ''
+                      }`}
+                      onClick={() => setActiveDocumentId(doc.document_id)}
+                      role='button'
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          setActiveDocumentId(doc.document_id);
+                        }
+                      }}
+                    >
+                      <div className={styles.ragDocuments__docItemTop}>
+                        <span className={styles.ragDocuments__docItemTitle} title={docTitle}>
+                          {docTitle}
+                        </span>
+                        <button
+                          type='button'
+                          className={styles.ragDocuments__docDeleteBtn}
+                          onClick={e => handleDelete(e, doc.document_id)}
+                          aria-label='Delete document'
+                          title='Delete document'
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
 
-      <section className={styles.ragDocuments__main}>
-        {!activeDocument && (
-          <p className={`${ui.pageStates__message} ${ui['pageStates__message--empty']}`}>
-            Select a document from the list, or upload a new PDF to get
-            started.
-          </p>
-        )}
-
-        {activeDocument && activeDocument.status === 'failed' && (
-          <p className={`${ui.pageStates__message} ${ui['pageStates__message--error']}`}>
-            {activeDocument.error_message ||
-              'This document failed to process. Delete it and try uploading again.'}
-          </p>
-        )}
-
-        {activeDocument && activeDocument.status === 'processing' && (
-          <p className={`${ui.pageStates__message} ${ui['pageStates__message--loading']}`}>
-            {activeDocument.title || 'This document'} is still processing.
-            Check back shortly.
-          </p>
-        )}
-
-        {activeDocument &&
-          activeDocument.status !== 'processing' &&
-          activeDocument.status !== 'failed' && (
-          <>
-            <div className={styles.ragDocuments__docHeader}>
-              <h3>{activeDocument.title || activeDocument.filename}</h3>
-            </div>
-
-            <div className={styles.ragDocuments__tabs} role='tablist'>
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  type='button'
-                  role='tab'
-                  aria-selected={activeTab === tab.id}
-                  className={`${styles.ragDocuments__tab} ${
-                    activeTab === tab.id ? styles['ragDocuments__tab--active'] : ''
-                  }`}
-                  onClick={() => setActiveTab(tab.id)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === 'ask' && (
-              <div className={styles.ragDocuments__tabPanel}>
-                <form onSubmit={handleAsk} className={styles.ragDocuments__queryForm}>
-                  <input
-                    type='text'
-                    value={askQuery}
-                    onChange={e => setAskQuery(e.target.value)}
-                    placeholder='Ask a question about this document...'
-                    className={styles.ragDocuments__queryInput}
-                    disabled={isAsking}
-                  />
-                  <button
-                    type='submit'
-                    className={styles.ragDocuments__queryButton}
-                    disabled={isAsking || !askQuery.trim()}
-                  >
-                    {isAsking ? (
-                      <Loader2 size={16} className={styles.spin} />
-                    ) : (
-                      <Send size={16} />
-                    )}
-                  </button>
-                </form>
-
-                {askError && (
-                  <p className={styles.ragDocuments__error}>{askError}</p>
-                )}
-
-                {askAnswer && (
-                  <div className={styles.ragDocuments__answerPanel}>
-                    <RagAnswerBody>
-                      {askAnswer.answer || askAnswer.text || ''}
-                    </RagAnswerBody>
-                  </div>
-                )}
+                      <div className={styles.ragDocuments__docItemBottom}>
+                        {doc.status === 'ready' && (
+                          <span className={styles.ragDocuments__badgeReady}>READY</span>
+                        )}
+                        {doc.status === 'processing' && (
+                          <span className={styles.ragDocuments__badgeProcessing}>
+                            PROCESSING
+                          </span>
+                        )}
+                        {doc.status === 'failed' && (
+                          <span className={styles.ragDocuments__badgeFailed}>FAILED</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
+          </div>
+        </aside>
 
-            {activeTab === 'search' && (
-              <div className={styles.ragDocuments__tabPanel}>
-                <form
-                  onSubmit={handleSearch}
-                  className={styles.ragDocuments__queryForm}
-                >
+        {/* Right Column: Unified Reader + Semantic Search + Ask with AI */}
+        <main className={styles.ragDocuments__contentCard}>
+          {!activeDocument ? (
+            <div className={styles.ragDocuments__noSelection}>
+              <FileText size={36} className={styles.ragDocuments__noSelectionIcon} />
+              <h3>No document selected</h3>
+              <p>Select a PDF from your library or upload a new one to preview and interact with it.</p>
+            </div>
+          ) : (
+            <>
+              {/* 1. Reader Section */}
+              <section className={styles.ragDocuments__section}>
+                <h2 className={styles.ragDocuments__sectionTitle}>Reader</h2>
+                <p className={styles.ragDocuments__sectionSubtitle}>
+                  Inline preview of the selected PDF.
+                </p>
+
+                <div className={styles.ragDocuments__readerFrame}>
+                  {isLoadingPreview && (
+                    <div className={styles.ragDocuments__previewStatus}>
+                      <Loader2 size={24} className={styles.spin} />
+                      <p>Loading PDF preview...</p>
+                    </div>
+                  )}
+
+                  {previewError && (
+                    <div className={styles.ragDocuments__previewStatus}>
+                      <p className={styles.ragDocuments__error}>{previewError}</p>
+                    </div>
+                  )}
+
+                  {pdfObjectUrl && !isLoadingPreview && !previewError && (
+                    <iframe
+                      src={pdfObjectUrl}
+                      title='PDF Preview'
+                      className={styles.ragDocuments__iframe}
+                    />
+                  )}
+
+                  {!pdfObjectUrl && !isLoadingPreview && !previewError && (
+                    <div className={styles.ragDocuments__previewStatus}>
+                      <p>PDF preview is ready.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* 2. Semantic Search Section */}
+              <section className={styles.ragDocuments__section}>
+                <h2 className={styles.ragDocuments__sectionTitle}>Semantic search</h2>
+                <p className={styles.ragDocuments__sectionSubtitle}>
+                  Finds passages by meaning (embeddings), not only exact keywords.
+                </p>
+
+                <form onSubmit={handleSearch} className={styles.ragDocuments__form}>
+                  <label htmlFor='rag-search-input' className={styles.ragDocuments__label}>
+                    Search query
+                  </label>
                   <input
+                    id='rag-search-input'
                     type='text'
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder='Search excerpts in this document...'
-                    className={styles.ragDocuments__queryInput}
+                    placeholder='Describe the topic or phrase you are looking for'
+                    className={styles.ragDocuments__input}
                     disabled={isSearching}
                   />
+
                   <button
                     type='submit'
-                    className={styles.ragDocuments__queryButton}
+                    className={styles.ragDocuments__actionBtn}
                     disabled={isSearching || !searchQuery.trim()}
                   >
                     {isSearching ? (
-                      <Loader2 size={16} className={styles.spin} />
+                      <Loader2 size={14} className={styles.spin} />
                     ) : (
-                      <Search size={16} />
+                      <Sparkles size={14} />
                     )}
+                    <span>{isSearching ? 'Searching...' : 'Search'}</span>
                   </button>
                 </form>
 
                 {searchError && (
-                  <p className={styles.ragDocuments__error}>{searchError}</p>
+                  <div className={styles.ragDocuments__errorBanner} role='alert'>
+                    {searchError}
+                  </div>
                 )}
 
                 {searchResults && searchResults.length === 0 && (
-                  <p className={`${ui.pageStates__message} ${ui['pageStates__message--empty']}`}>
-                    No matching excerpts found.
+                  <p className={styles.ragDocuments__emptyResults}>
+                    No matching passages found in this document.
                   </p>
                 )}
 
                 {searchResults && searchResults.length > 0 && (
                   <ul className={styles.ragDocuments__excerptList}>
-                    {searchResults.map(result => (
-                      <li
-                        key={result.chunkId}
-                        className={styles.ragDocuments__excerpt}
-                      >
+                    {searchResults.map((result, idx) => (
+                      <li key={result.chunkId || idx} className={styles.ragDocuments__excerptItem}>
                         <p className={styles.ragDocuments__excerptText}>
                           {result.excerpt}
                         </p>
@@ -412,31 +456,61 @@ export default function RagDocuments() {
                     ))}
                   </ul>
                 )}
-              </div>
-            )}
+              </section>
 
-            {activeTab === 'preview' && (
-              <div className={styles.ragDocuments__tabPanel}>
-                {isLoadingPreview && (
-                  <p className={`${ui.pageStates__message} ${ui['pageStates__message--loading']}`}>
-                    Loading preview...
-                  </p>
-                )}
-                {previewError && (
-                  <p className={styles.ragDocuments__error}>{previewError}</p>
-                )}
-                {pdfObjectUrl && !isLoadingPreview && (
-                  <iframe
-                    src={pdfObjectUrl}
-                    title='PDF preview'
-                    className={styles.ragDocuments__pdfFrame}
+              {/* 3. Ask with AI Section */}
+              <section className={styles.ragDocuments__section}>
+                <h2 className={styles.ragDocuments__sectionTitle}>Ask with AI</h2>
+                <p className={styles.ragDocuments__sectionSubtitle}>
+                  Answers use only retrieved excerpts from this PDF, with citations where possible. When the document includes code, the reply may show it in formatted blocks you can copy.
+                </p>
+
+                <form onSubmit={handleAsk} className={styles.ragDocuments__form}>
+                  <label htmlFor='rag-ask-input' className={styles.ragDocuments__label}>
+                    Question
+                  </label>
+                  <textarea
+                    id='rag-ask-input'
+                    value={askQuery}
+                    onChange={e => setAskQuery(e.target.value)}
+                    placeholder='What does this PDF recommend for route persistence?'
+                    className={styles.ragDocuments__textarea}
+                    rows={3}
+                    disabled={isAsking}
                   />
+
+                  <button
+                    type='submit'
+                    className={styles.ragDocuments__actionBtn}
+                    disabled={isAsking || !askQuery.trim()}
+                  >
+                    {isAsking ? (
+                      <Loader2 size={14} className={styles.spin} />
+                    ) : (
+                      <Sparkles size={14} />
+                    )}
+                    <span>{isAsking ? 'Asking...' : 'Ask'}</span>
+                  </button>
+                </form>
+
+                {askError && (
+                  <div className={styles.ragDocuments__errorBanner} role='alert'>
+                    {askError}
+                  </div>
                 )}
-              </div>
-            )}
-          </>
-        )}
-      </section>
+
+                {askAnswer && (
+                  <div className={styles.ragDocuments__answerContainer}>
+                    <RagAnswerBody>
+                      {askAnswer.answer || askAnswer.text || ''}
+                    </RagAnswerBody>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 }

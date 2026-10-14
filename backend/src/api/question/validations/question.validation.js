@@ -105,3 +105,49 @@ export const answerFitValidation = [
 
   validationErrorHandler,
 ];
+
+export const updateQuestionValidation = [
+  param('questionHash')
+    .matches(/^[a-f0-9]{16}$/)
+    .withMessage('questionHash must be a 16-character hex string'),
+  body('title')
+    .trim()
+    .isString()
+    .withMessage('title must be a string')
+    .isLength({ min: 5, max: 255 })
+    .withMessage('title must be 5–255 characters'),
+  body('content')
+    .trim()
+    .isString()
+    .withMessage('content must be a string')
+    .isLength({ min: 10 })
+    .withMessage('content must be at least 10 characters'),
+
+  validationErrorHandler,
+];
+
+export const deleteQuestionValidation = [
+  param('questionHash')
+    .matches(/^[a-f0-9]{16}$/)
+    .withMessage('questionHash must be a 16-character hex string'),
+
+  validationErrorHandler,
+];
+
+export const generateAnswerValidation = [
+  param('questionHash')
+    .matches(/^[a-f0-9]{16}$/)
+    .withMessage('questionHash must be a 16-character hex string'),
+  validationErrorHandler,
+];
+
+export const rewriteQuestionValidation = [
+  body('title').optional().isString().withMessage('title must be a string').trim(),
+  body('content')
+    .trim()
+    .isString()
+    .withMessage('content is required')
+    .isLength({ min: 5 })
+    .withMessage('content must be at least 5 characters'),
+  validationErrorHandler,
+];

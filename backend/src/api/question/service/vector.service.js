@@ -350,7 +350,7 @@ export async function findSimilarQuestionsByText({ sourceText, threshold, k }) {
 
 	// Fetch question details using IN clause
 	const questionIds = topResults.map((r) => r.questionId);
-	const placeholders = questionIds.map(() => "?").join(",");/
+	const placeholders = questionIds.map(() => "?").join(",");
 
 	const sql = `
         SELECT

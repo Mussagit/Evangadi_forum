@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, LogOut, MessageSquare, FileText } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import UserAvatar from '../UserAvatar/UserAvatar';
 import styles from './Sidebar.module.css';
 
 /**
@@ -96,19 +97,10 @@ export default function Sidebar({ open = false, onNavigate }) {
 
         <div className={styles.sidebar__user}>
           <div className={styles.sidebar__profile}>
-            <div className={styles.sidebar__avatar}>
-              <img
-                src={
-                  user?.avatar ||
-                  `https://ui-avatars.com/api/?name=${
-                    user?.firstName || 'User'
-                  }+${user?.lastName || ''}&background=random`
-                }
-                alt={`${user?.firstName} ${user?.lastName}`}
-                className={styles['sidebar__avatar-image']}
-                referrerPolicy='no-referrer'
-              />
-            </div>
+            <UserAvatar
+              name={user ? `${user.firstName} ${user.lastName}` : 'User'}
+              size='lg'
+            />
             <div className={styles.sidebar__info}>
               <p className={styles.sidebar__name}>
                 {user?.firstName} {user?.lastName}

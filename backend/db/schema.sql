@@ -132,3 +132,42 @@ CREATE TABLE `document_chunk_vectors` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- -----------------------------------------------------------------------------
+-- 6. Answer Replies Table
+-- Threaded comments/replies under an individual answer.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS `answer_replies`;
+CREATE TABLE `answer_replies` (
+    `reply_id` INT AUTO_INCREMENT PRIMARY KEY,
+    `answer_id` INT NOT NULL,
+    `user_id` INT NOT NULL,
+    `content` TEXT NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (`answer_id`) REFERENCES `answers`(`answer_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`user_id`)   REFERENCES `users`(`user_id`)   ON DELETE CASCADE,
+
+    INDEX `idx_replies_answer_id` (`answer_id`),
+    INDEX `idx_replies_user_id`   (`user_id`),
+    INDEX `idx_replies_created_at`(`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 7. Answer Vectors Table
+-- Stores Gemini embeddings of answer content for AI "Related Answers" search.
+-- -----------------------------------------------------------------------------
+DROP TABLE IF EXISTS `answer_vectors`;
+CREATE TABLE `answer_vectors` (
+    `vector_id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `answer_id` INT NOT NULL,
+    `source_text` TEXT NOT NULL,
+    `embedding` JSON NOT NULL,
+    `status` VARCHAR(20) DEFAULT 'ready',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (`answer_id`) REFERENCES `answers`(`answer_id`) ON DELETE CASCADE,
+    UNIQUE KEY `uniq_answer_vectors_answer_id` (`answer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
