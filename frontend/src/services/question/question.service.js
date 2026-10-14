@@ -26,7 +26,7 @@ async function getQuestions({ search, mine } = {}) {
 function handleQuestionError(error) {
   if (!error.response) {
     if (error.code === 'ECONNABORTED') {
-      return new Error('Request timed out. Please try again.');
+      return new Error('The AI is taking longer than usual. Please try again in a moment.');
     }
     return new Error(
       'Unable to connect to server. Please check your internet connection.',
@@ -92,10 +92,11 @@ async function getSingleQuestion(questionHash) {
  */
 async function generateQuestionDraftCoach({ title, content }) {
   try {
-    const response = await apiClient.post('/api/questions/draft-coach', {
-      title,
-      content,
-    });
+    const response = await apiClient.post(
+      '/api/questions/draft-coach',
+      { title, content },
+      { timeout: 120000 },
+    );
     return response.data.data;
   } catch (error) {
     throw handleQuestionError(error);
@@ -112,6 +113,7 @@ async function assessAnswerFit(questionHash, answerText) {
     const response = await apiClient.post(
       `/api/questions/${questionHash}/answer-fit`,
       { answerText },
+      { timeout: 120000 },
     );
     return response.data.data;
   } catch (error) {
@@ -151,6 +153,21 @@ async function getSimilarQuestions(questionHash) {
 }
 
 /**
+ * Finds answers semantically related to a given question.
+ * @param {string} questionHash
+ */
+async function getSimilarAnswers(questionHash) {
+  try {
+    const response = await apiClient.get(
+      `/api/questions/${questionHash}/similar-answers`,
+    );
+    return response.data.data;
+  } catch (error) {
+    throw handleQuestionError(error);
+  }
+}
+
+/**
  * Updates a question's title and content (owner only).
  * @param {string} questionHash
  * @param {{ title: string, content: string }} data
@@ -180,16 +197,53 @@ async function deleteQuestion(questionHash) {
 }
 
 /**
+ * Asks AI to generate a complete, well-structured answer for a question.
+ * @param {string} questionHash
+ */
+async function generatePerfectAnswer(questionHash) {
+  try {
+    const response = await apiClient.post(
+      `/api/questions/${questionHash}/generate-answer`,
+      {},
+      { timeout: 120000 }, // Gemini text generation can take up to 60-90s
+    );
+    return response.data.data;
+  } catch (error) {
+    throw handleQuestionError(error);
+  }
+}
+
+/**
+ * Asks AI to rewrite a rough question draft into a clear forum question.
+ * @param {{ title: string, content: string }} data
+ */
+async function rewriteQuestion({ title, content }) {
+  try {
+    const response = await apiClient.post(
+      '/api/questions/rewrite-question',
+      { title, content },
+      { timeout: 120000 }, // Gemini text generation can take up to 60-90s
+    );
+    return response.data.data;
+  } catch (error) {
+    throw handleQuestionError(error);
+  }
+}
+
+/**
  * Service for handling question-related requests.
  */
 export const questionService = {
   getQuestions,
   searchQuestionsSemantic,
   getSimilarQuestions,
+  getSimilarAnswers,
   createQuestion,
   getSingleQuestion,
   generateQuestionDraftCoach,
   assessAnswerFit,
   updateQuestion,
   deleteQuestion,
+  generatePerfectAnswer,
+  rewriteQuestion,
 };

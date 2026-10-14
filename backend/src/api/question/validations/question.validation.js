@@ -133,3 +133,21 @@ export const deleteQuestionValidation = [
 
   validationErrorHandler,
 ];
+
+export const generateAnswerValidation = [
+  param('questionHash')
+    .matches(/^[a-f0-9]{16}$/)
+    .withMessage('questionHash must be a 16-character hex string'),
+  validationErrorHandler,
+];
+
+export const rewriteQuestionValidation = [
+  body('title').optional().isString().withMessage('title must be a string').trim(),
+  body('content')
+    .trim()
+    .isString()
+    .withMessage('content is required')
+    .isLength({ min: 5 })
+    .withMessage('content must be at least 5 characters'),
+  validationErrorHandler,
+];

@@ -439,3 +439,100 @@ export const deleteQuestionService = async ({ questionHash, userId }) => {
 
   await safeExecute('DELETE FROM questions WHERE question_id = ?', [rows[0].question_id]);
 };
+
+/**
+ * Finds answers that are semantically related to a given question by comparing
+ * the question's embedding against all stored answer_vectors.
+ *
+ * @param {Object} params
+ * @param {string} params.questionHash
+ * @param {number} [params.k]
+ * @param {number} [params.threshold]
+ */
+export const getSimilarAnswersService = async ({ questionHash, k, threshold }) => {
+  const effectiveK = k || DEFAULT_K;
+  // Use a lower threshold for answers — they are shorter than questions
+  const effectiveThreshold = threshold ?? (Number(process.env.RAG_SEARCH_THRESHOLD) || 0.45);
+
+  // Load the question's embedding as the query vector
+  const sourceRows = await safeExecute(
+    `SELECT q.question_id, qv.embedding
+     FROM questions q
+     LEFT JOIN question_vectors qv ON qv.question_id = q.question_id AND qv.status = 'ready'
+     WHERE q.question_hash = ?`,
+    [questionHash],
+  );
+
+  if (sourceRows.length === 0) throw new NotFoundError('Question not found.');
+
+  const sourceEmbedding = safeParseEmbedding(sourceRows[0].embedding);
+  if (!sourceEmbedding) {
+    return { data: [], meta: { total: 0, k: effectiveK, threshold: effectiveThreshold } };
+  }
+
+  const vectorRows = await safeExecute(
+    `SELECT av.answer_id, av.embedding
+     FROM answer_vectors av
+     WHERE av.status = 'ready'`,
+    [],
+  );
+
+  const scored = vectorRows
+    .map(row => {
+      const emb = safeParseEmbedding(row.embedding);
+      if (!emb) return null;
+      return { answerId: row.answer_id, score: cosineSimilarity(sourceEmbedding, emb) };
+    })
+    .filter(Boolean)
+    .filter(m => m.score >= effectiveThreshold)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, effectiveK);
+
+  if (scored.length === 0) {
+    return { data: [], meta: { total: 0, k: effectiveK, threshold: effectiveThreshold } };
+  }
+
+  const ids = scored.map(m => m.answerId);
+  const placeholders = ids.map(() => '?').join(',');
+
+  const rows = await safeExecute(
+    `SELECT
+       a.answer_id, a.content, a.created_at,
+       u.user_id AS author_id, u.first_name AS author_first_name, u.last_name AS author_last_name,
+       q.question_hash, q.title AS question_title
+     FROM answers a
+     JOIN users u ON u.user_id = a.user_id
+     JOIN questions q ON q.question_id = a.question_id
+     WHERE a.answer_id IN (${placeholders})`,
+    ids,
+  );
+
+  const byId = new Map(rows.map(r => [r.answer_id, r]));
+
+  const data = scored
+    .map(m => {
+      const r = byId.get(m.answerId);
+      if (!r) return null;
+      // Truncate preview to 200 chars
+      const preview = r.content.length > 200 ? r.content.substring(0, 200) + '…' : r.content;
+      return {
+        id: r.answer_id,
+        preview,
+        questionHash: r.question_hash,
+        questionTitle: r.question_title,
+        createdAt: r.created_at,
+        score: m.score,
+        author: {
+          id: r.author_id,
+          firstName: r.author_first_name,
+          lastName: r.author_last_name,
+        },
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    data,
+    meta: { total: data.length, k: effectiveK, threshold: effectiveThreshold },
+  };
+};

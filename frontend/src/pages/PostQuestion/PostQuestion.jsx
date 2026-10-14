@@ -7,7 +7,7 @@
 
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2, Send, Code, Link2, Check } from 'lucide-react';
+import { Sparkles, Loader2, Send, Code, Link2, Check, Wand2 } from 'lucide-react';
 import { questionService } from '../../services/question/question.service.js';
 import styles from './PostQuestion.module.css';
 
@@ -22,7 +22,10 @@ export default function PostQuestion() {
   const [formData, setFormData] = useState({ title: '', content: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCoaching, setIsCoaching] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
   const [coachFeedback, setCoachFeedback] = useState(null);
+  const [rewriteTips, setRewriteTips] = useState([]);
+  const [wasRewritten, setWasRewritten] = useState(false);
   const [error, setError] = useState(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdQuestionHash, setCreatedQuestionHash] = useState(null);
@@ -133,6 +136,27 @@ export default function PostQuestion() {
     }
   }
 
+  async function handleRewriteQuestion() {
+    if (formData.content.trim().length < 5) {
+      setError('Please write at least a few words before asking AI to rewrite.');
+      return;
+    }
+    setError(null);
+    setIsRewriting(true);
+    setWasRewritten(false);
+    try {
+      const result = await questionService.rewriteQuestion(formData);
+      setFormData({ title: result.title || formData.title, content: result.content || formData.content });
+      setRewriteTips(result.tips || []);
+      setWasRewritten(true);
+      setCoachFeedback(null);
+    } catch (err) {
+      setError(err.message || 'Failed to rewrite question.');
+    } finally {
+      setIsRewriting(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -159,6 +183,8 @@ export default function PostQuestion() {
   function handleAskAnother() {
     setFormData({ title: '', content: '' });
     setCoachFeedback(null);
+    setRewriteTips([]);
+    setWasRewritten(false);
     setError(null);
     setCreatedQuestionHash(null);
     setIsSuccess(false);
@@ -375,7 +401,7 @@ export default function PostQuestion() {
                   type='button'
                   className={styles.postQuestion__aiPillBtn}
                   onClick={handleGetFeedback}
-                  disabled={isCoaching || isSubmitting}
+                  disabled={isCoaching || isRewriting || isSubmitting}
                 >
                   {isCoaching ? (
                     <Loader2 size={14} className={styles.spin} />
@@ -384,10 +410,43 @@ export default function PostQuestion() {
                   )}
                   <span>{isCoaching ? 'Getting suggestions...' : 'AI suggestions'}</span>
                 </button>
+
+                <button
+                  type='button'
+                  className={styles.postQuestion__aiRewriteBtn}
+                  onClick={handleRewriteQuestion}
+                  disabled={isRewriting || isCoaching || isSubmitting}
+                  title='AI rewrites your draft into a clear, well-structured question'
+                >
+                  {isRewriting ? (
+                    <Loader2 size={14} className={styles.spin} />
+                  ) : (
+                    <Wand2 size={14} />
+                  )}
+                  <span>{isRewriting ? 'Rewriting...' : 'AI rewrite question'}</span>
+                </button>
+
                 <span className={styles.postQuestion__aiHelperText}>
                   Suggestions only. You still choose what to post.
                 </span>
               </div>
+
+              {/* AI Rewrite success notice + tips */}
+              {wasRewritten && (
+                <div className={styles.postQuestion__rewriteNotice} role='status'>
+                  <div className={styles.postQuestion__rewriteNoticeBadge}>
+                    <Wand2 size={13} />
+                    <span>AI has rewritten your question — review and edit as needed.</span>
+                  </div>
+                  {rewriteTips.length > 0 && (
+                    <ul className={styles.postQuestion__coachTips}>
+                      {rewriteTips.map((tip, i) => (
+                        <li key={i}>{tip}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
 
               {/* AI Coach Feedback Display Panel */}
               {coachFeedback && (
@@ -417,7 +476,7 @@ export default function PostQuestion() {
                     type='button'
                     className={styles.postQuestion__cancelBtn}
                     onClick={() => navigate(-1)}
-                    disabled={isSubmitting || isCoaching}
+                    disabled={isSubmitting || isCoaching || isRewriting}
                   >
                     Cancel
                   </button>
@@ -425,7 +484,7 @@ export default function PostQuestion() {
                   <button
                     type='submit'
                     className={styles.postQuestion__submitBtn}
-                    disabled={isSubmitting || isCoaching}
+                    disabled={isSubmitting || isCoaching || isRewriting}
                   >
                     {isSubmitting ? (
                       <>

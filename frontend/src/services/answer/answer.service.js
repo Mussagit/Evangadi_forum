@@ -81,10 +81,67 @@ async function deleteAnswer(answerId) {
 }
 
 /**
+ * Fetches all threaded replies for an answer.
+ * @param {number} answerId
+ */
+async function getReplies(answerId) {
+  try {
+    const response = await apiClient.get(`/api/answers/${answerId}/replies`);
+    return response.data.data;
+  } catch (error) {
+    throw handleAnswerError(error);
+  }
+}
+
+/**
+ * Posts a reply to an answer.
+ * @param {number} answerId
+ * @param {string} content
+ */
+async function postReply(answerId, content) {
+  try {
+    const response = await apiClient.post(`/api/answers/${answerId}/replies`, { content });
+    return response.data.data;
+  } catch (error) {
+    throw handleAnswerError(error);
+  }
+}
+
+/**
+ * Updates a reply's content (author only).
+ * @param {number} replyId
+ * @param {string} content
+ */
+async function updateReply(replyId, content) {
+  try {
+    const response = await apiClient.patch(`/api/answers/replies/${replyId}`, { content });
+    return response.data.data;
+  } catch (error) {
+    throw handleAnswerError(error);
+  }
+}
+
+/**
+ * Permanently deletes a reply (author only).
+ * @param {number} replyId
+ */
+async function deleteReply(replyId) {
+  try {
+    await apiClient.delete(`/api/answers/replies/${replyId}`);
+  } catch (error) {
+    throw handleAnswerError(error);
+  }
+}
+
+/**
  * Service for handling answer-related requests.
  */
 export const answerService = {
   postAnswer,
   updateAnswer,
   deleteAnswer,
+  getReplies,
+  postReply,
+  updateReply,
+  deleteReply,
 };

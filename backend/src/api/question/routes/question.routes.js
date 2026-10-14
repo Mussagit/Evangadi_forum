@@ -9,6 +9,9 @@ import {
   assessAnswerAgainstQuestionController,
   updateQuestionController,
   deleteQuestionController,
+  getSimilarAnswersController,
+  generatePerfectAnswerController,
+  rewriteQuestionController,
 } from '../controller/question.controller.js';
 import {
   getQuestionsValidation,
@@ -20,6 +23,8 @@ import {
   answerFitValidation,
   updateQuestionValidation,
   deleteQuestionValidation,
+  generateAnswerValidation,
+  rewriteQuestionValidation,
 } from '../validations/question.validation.js';
 import { authenticateUser } from '../../../middleware/authentication.js';
 
@@ -49,6 +54,19 @@ router.post(
   authenticateUser,
   draftCoachValidation,
   generateQuestionDraftCoachController,
+);
+
+/**
+ * @route POST /api/questions/rewrite-question
+ * @desc AI rewrites a rough question draft into a clear, structured question
+ * @access Protected
+ * NOTE: registered before /:questionHash to avoid param collision.
+ */
+router.post(
+  '/rewrite-question',
+  authenticateUser,
+  rewriteQuestionValidation,
+  rewriteQuestionController,
 );
 
 /**
@@ -89,6 +107,18 @@ router.get(
 );
 
 /**
+ * @route GET /api/questions/:questionHash/similar-answers
+ * @desc Find answers semantically related to a given question
+ * @access Protected
+ */
+router.get(
+  '/:questionHash/similar-answers',
+  authenticateUser,
+  similarQuestionsValidation,
+  getSimilarAnswersController,
+);
+
+/**
  * @route POST /api/questions/:questionHash/answer-fit
  * @desc AI evaluation of how well a draft answer fits a question
  * @access Protected
@@ -98,6 +128,18 @@ router.post(
   authenticateUser,
   answerFitValidation,
   assessAnswerAgainstQuestionController,
+);
+
+/**
+ * @route POST /api/questions/:questionHash/generate-answer
+ * @desc AI generates a complete answer for the question
+ * @access Protected
+ */
+router.post(
+  '/:questionHash/generate-answer',
+  authenticateUser,
+  generateAnswerValidation,
+  generatePerfectAnswerController,
 );
 
 /**

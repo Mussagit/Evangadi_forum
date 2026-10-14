@@ -524,3 +524,55 @@
     width: 100%;
   }
 }
+
+/* ── AI Rewrite button ────────────────────────────────────────────────────── */
+
+.postQuestion__aiRewriteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, #ea580c 0%, #d97706 100%);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(234, 88, 12, 0.3);
+  transition: opacity 150ms, transform 150ms;
+  white-space: nowrap;
+}
+
+.postQuestion__aiRewriteBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.postQuestion__aiRewriteBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Rewrite success notice ───────────────────────────────────────────────── */
+
+.postQuestion__rewriteNotice {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md, 0.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.postQuestion__rewriteNoticeBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #92400e;
+}
