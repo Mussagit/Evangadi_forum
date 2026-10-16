@@ -16,6 +16,48 @@ app.use(express.urlencoded({ extended: true }));
 let isDbConnected = false;
 let dbInitError = null;
 
+// Root welcome & status page
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Evangadi Forum API</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: #1e293b; border-radius: 12px; padding: 32px; max-width: 520px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        h1 { margin-top: 0; font-size: 24px; color: #38bdf8; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+        .badge-success { background: #065f46; color: #34d399; }
+        .badge-warning { background: #78350f; color: #fbbf24; }
+        p { color: #94a3b8; line-height: 1.6; }
+        ul { padding-left: 20px; color: #cbd5e1; }
+        li { margin-bottom: 8px; }
+        a { color: #38bdf8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code { background: #0f172a; padding: 2px 6px; border-radius: 4px; color: #f472b6; font-size: 13px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <h1>Evangadi Forum API</h1>
+        <div class="badge ${isDbConnected ? 'badge-success' : 'badge-warning'}">
+          ${isDbConnected ? '● Online & Database Connected' : '▲ Online (Database Connecting...)'}
+        </div>
+        <p>The backend API server is up and running successfully on Render.</p>
+        <ul>
+          <li><strong>Health Check:</strong> <a href="/health">/health</a></li>
+          <li><strong>API Base:</strong> <code>/api</code></li>
+          <li><strong>Questions API:</strong> <a href="/api/questions">/api/questions</a></li>
+        </ul>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

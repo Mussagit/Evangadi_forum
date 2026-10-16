@@ -52,6 +52,9 @@ function getPoolConfig() {
       }
     }
     host = host.replace(/\/+$/, '').trim();
+    if (host.includes('musssae2484')) {
+      host = host.replace('musssae2484', 'mussae2484');
+    }
   }
 
   if (typeof user === 'string') user = user.trim().replace(/^["']|["']$/g, '');
