@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "node backend/app.js",
-    "build": "npm --prefix backend install"
+    "build": "npm --prefix backend install",
+    "postinstall": "npm --prefix backend install"
   }
 }

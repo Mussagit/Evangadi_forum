@@ -34,12 +34,13 @@ const startServer = async () => {
     // Verify and ensure database tables exist
     await initDbSchema();
 
-    app.listen(port, err => {
-      if (err) {
-        console.error('Failed to start the server:', err.message);
-        process.exit(1);
-      }
-      console.log(`Server running on port http://localhost:${port}`);
+    const server = app.listen(port, '0.0.0.0', () => {
+      console.log(`Server running and listening on 0.0.0.0:${port}`);
+    });
+
+    server.on('error', err => {
+      console.error('Failed to start the server:', err.message);
+      process.exit(1);
     });
   } catch (error) {
     console.error(

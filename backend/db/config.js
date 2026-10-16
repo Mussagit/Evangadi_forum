@@ -5,12 +5,12 @@ import mysql from 'mysql2/promise';
 function getPoolConfig() {
   const uri = process.env.DATABASE_URL || process.env.MYSQL_URL;
 
-  // Defaults
-  let host = process.env.DB_HOST || '127.0.0.1';
-  let port = process.env.DB_PORT ? Number(process.env.DB_PORT) : 3306;
-  let user = process.env.DB_USER || 'root';
-  let password = process.env.DB_PASS || '';
-  let database = process.env.DB_NAME || 'evangadi_forum';
+  // Defaults with support for standard alternatives (DB_PASS / DB_PASSWORD, DB_NAME / DB_DATABASE, etc.)
+  let host = process.env.DB_HOST || process.env.MYSQLHOST || '127.0.0.1';
+  let port = process.env.DB_PORT || process.env.MYSQLPORT ? Number(process.env.DB_PORT || process.env.MYSQLPORT) : 3306;
+  let user = process.env.DB_USER || process.env.DB_USERNAME || process.env.MYSQLUSER || 'root';
+  let password = process.env.DB_PASS || process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '';
+  let database = process.env.DB_NAME || process.env.DB_DATABASE || process.env.MYSQLDATABASE || 'evangadi_forum';
 
   // If a connection URI is provided (e.g. from Aiven Service URI or Railway)
   if (uri && uri.trim()) {
@@ -73,6 +73,9 @@ function getPoolConfig() {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    connectTimeout: 20000,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
   };
 
   if (useSsl) {
