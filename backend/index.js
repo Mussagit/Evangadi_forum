@@ -9,7 +9,12 @@ const app = express();
 const port = process.env.PORT || 3779;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true, // Allow all origins (Vercel domain, localhost, etc.)
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

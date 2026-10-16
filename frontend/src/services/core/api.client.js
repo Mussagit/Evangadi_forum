@@ -15,9 +15,12 @@ const getBaseUrl = () => {
     const isLocalhost =
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1';
-    return isLocalhost ? 'http://localhost:3779' : '';
+    if (isLocalhost) {
+      return 'http://localhost:3779';
+    }
   }
-  return '';
+  // Production Render backend URL
+  return 'https://evangadi-forum-l34l.onrender.com';
 };
 
 /**
