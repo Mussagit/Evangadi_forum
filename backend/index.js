@@ -13,47 +13,75 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+let isDbConnected = false;
+let dbInitError = null;
+
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+  res.json({
+    status: 'ok',
+    database: isDbConnected ? 'connected' : (dbInitError ? `error: ${dbInitError.message}` : 'connecting'),
+    timestamp: new Date(),
+  });
+});
+
+// Guard API routes if database is not reachable yet
+app.use('/api', (req, res, next) => {
+  if (!isDbConnected && dbInitError) {
+    return res.status(503).json({
+      error: 'Database unavailable',
+      message: 'The server could not connect to the database. Please verify your database settings (DATABASE_URL or DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT, DB_SSL) in the Render Environment tab.',
+      details: dbInitError.message,
+    });
+  }
+  next();
 });
 
 app.use('/api', mainRouter);
 
 app.use(errorHandler);
 
-// Start server
-const startServer = async () => {
-  try {
-    console.log(`Connecting to database at ${host}:${dbPort} (database: "${dbName}", ssl: ${useSsl ? 'enabled' : 'disabled'})...`);
-    // Test database connection
-    const connection = await db.getConnection();
-    console.log('Database connection established successfully.');
-    connection.release();
+// Attempt database connection with retries without crashing the HTTP server
+const connectDbWithRetry = async (retries = 3, delayMs = 4000) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`[Attempt ${attempt}/${retries}] Connecting to database at ${host}:${dbPort} (database: "${dbName}", ssl: ${useSsl ? 'enabled' : 'disabled'})...`);
+      const connection = await db.getConnection();
+      console.log('Database connection established successfully.');
+      connection.release();
 
-    // Verify and ensure database tables exist
-    await initDbSchema();
-
-    const server = app.listen(port, '0.0.0.0', () => {
-      console.log(`Server running and listening on 0.0.0.0:${port}`);
-    });
-
-    server.on('error', err => {
-      console.error('Failed to start the server:', err.message);
-      process.exit(1);
-    });
-  } catch (error) {
-    console.error(
-      'Failed to connect to the database. Server not started.',
-      error.message,
-    );
-    if (error.code === 'ENOTFOUND') {
-      console.error(
-        `[DNS Error] Host "${host}" could not be resolved. Please verify DB_HOST in your Render Environment settings: ensure there are no accidental spaces, quotes, or trailing port numbers, and verify that your cloud database (Aiven) is active and running.`
-      );
+      await initDbSchema();
+      isDbConnected = true;
+      dbInitError = null;
+      console.log('Database schema verified. All systems ready.');
+      return;
+    } catch (error) {
+      dbInitError = error;
+      console.error(`Database connection attempt ${attempt} failed:`, error.message);
+      if (error.code === 'ENOTFOUND') {
+        console.error(`[DNS Error] Host "${host}" could not be resolved. Please verify DB_HOST in your Render Environment settings.`);
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error(`[Connection Refused] Could not connect to "${host}:${dbPort}". If this is on Render, 127.0.0.1 is not accessible. Please add your remote MySQL database credentials (e.g. Aiven) to the Render Environment tab.`);
+      }
+      if (attempt < retries) {
+        await new Promise(res => setTimeout(res, delayMs));
+      }
     }
-    process.exit(1);
   }
+};
+
+// Start server
+const startServer = () => {
+  const server = app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running and listening on 0.0.0.0:${port}`);
+    // Initiate DB connection in background so Render health-check passes immediately
+    connectDbWithRetry();
+  });
+
+  server.on('error', err => {
+    console.error('Failed to start the server:', err.message);
+    process.exit(1);
+  });
 };
 
 startServer();
