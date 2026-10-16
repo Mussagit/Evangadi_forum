@@ -1,5 +1,6 @@
 import express from 'express';
 import { db, host, port as dbPort, database as dbName, useSsl } from './db/config.js';
+import { initDbSchema } from './db/initDb.js';
 import { mainRouter } from './src/api/routes.js';
 import { errorHandler } from './src/middleware/error-handler.js';
 import cors from 'cors';
@@ -30,6 +31,9 @@ const startServer = async () => {
     console.log('Database connection established successfully.');
     connection.release();
 
+    // Verify and ensure database tables exist
+    await initDbSchema();
+
     app.listen(port, err => {
       if (err) {
         console.error('Failed to start the server:', err.message);
@@ -52,3 +56,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+export { app };
