@@ -1,10 +1,30 @@
 import axios from 'axios';
 
 /**
+ * Dynamically resolves the API base URL:
+ * - If VITE_API_BASE_URL is provided, use it.
+ * - In production browser environments, default to '' (same-origin request).
+ * - In local development on localhost, default to http://localhost:3779.
+ */
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && envUrl.trim().length > 0) {
+    return envUrl.trim();
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    const isLocalhost =
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1';
+    return isLocalhost ? 'http://localhost:3779' : '';
+  }
+  return '';
+};
+
+/**
  * Configured axios instance for API communication.
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3777',
+  baseURL: getBaseUrl(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

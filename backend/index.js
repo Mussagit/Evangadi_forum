@@ -1,9 +1,16 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { db, host, port as dbPort, database as dbName, useSsl } from './db/config.js';
 import { initDbSchema } from './db/initDb.js';
 import { mainRouter } from './src/api/routes.js';
 import { errorHandler } from './src/middleware/error-handler.js';
 import cors from 'cors';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 
 const app = express();
 const port = process.env.PORT || 3779;
@@ -16,8 +23,40 @@ app.use(express.urlencoded({ extended: true }));
 let isDbConnected = false;
 let dbInitError = null;
 
-// Root welcome & status page
-app.get('/', (req, res) => {
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    database: isDbConnected ? 'connected' : (dbInitError ? `error: ${dbInitError.message}` : 'connecting'),
+    timestamp: new Date(),
+  });
+});
+
+// Guard API routes if database is not reachable yet
+app.use('/api', (req, res, next) => {
+  if (!isDbConnected && dbInitError) {
+    return res.status(503).json({
+      error: 'Database unavailable',
+      message: 'The server could not connect to the database. Please verify your database settings (DATABASE_URL or DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT, DB_SSL) in the Render Environment tab.',
+      details: dbInitError.message,
+    });
+  }
+  next();
+});
+
+app.use('/api', mainRouter);
+
+// Serve static frontend files if frontend build exists
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+}
+
+// Fallback status card if frontend has not been built
+app.get('/', (req, res, next) => {
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -58,28 +97,17 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    database: isDbConnected ? 'connected' : (dbInitError ? `error: ${dbInitError.message}` : 'connecting'),
-    timestamp: new Date(),
-  });
-});
-
-// Guard API routes if database is not reachable yet
-app.use('/api', (req, res, next) => {
-  if (!isDbConnected && dbInitError) {
-    return res.status(503).json({
-      error: 'Database unavailable',
-      message: 'The server could not connect to the database. Please verify your database settings (DATABASE_URL or DB_HOST, DB_USER, DB_PASS, DB_NAME, DB_PORT, DB_SSL) in the Render Environment tab.',
-      details: dbInitError.message,
-    });
+// Single Page Application (SPA) routing: any frontend route loads index.html
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path === '/health') {
+    return next();
+  }
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
   }
   next();
 });
-
-app.use('/api', mainRouter);
 
 app.use(errorHandler);
 
