@@ -16,16 +16,33 @@ function getPoolConfig() {
   if (uri && uri.trim()) {
     try {
       const parsed = new URL(uri.trim());
-      host = parsed.hostname;
-      port = parsed.port ? Number(parsed.port) : port;
-      user = decodeURIComponent(parsed.username || user);
-      password = decodeURIComponent(parsed.password || password);
+      if (parsed.hostname) host = parsed.hostname;
+      if (parsed.port) port = Number(parsed.port);
+      if (parsed.username) user = decodeURIComponent(parsed.username);
+      if (parsed.password) password = decodeURIComponent(parsed.password);
       if (parsed.pathname && parsed.pathname.length > 1) {
         database = decodeURIComponent(parsed.pathname.slice(1));
       }
     } catch (e) {
       console.warn('Could not parse connection URI, falling back to individual DB_* vars:', e.message);
     }
+  }
+
+  // Explicit individual variables take highest priority if set
+  if (process.env.DB_PASS || process.env.DB_PASSWORD) {
+    password = process.env.DB_PASS || process.env.DB_PASSWORD;
+  }
+  if (process.env.DB_USER || process.env.DB_USERNAME) {
+    user = process.env.DB_USER || process.env.DB_USERNAME;
+  }
+  if (process.env.DB_HOST) {
+    host = process.env.DB_HOST;
+  }
+  if (process.env.DB_PORT) {
+    port = Number(process.env.DB_PORT);
+  }
+  if (process.env.DB_NAME || process.env.DB_DATABASE) {
+    database = process.env.DB_NAME || process.env.DB_DATABASE;
   }
 
   // Clean up host (trim spaces/newlines, remove quotes, strip protocol or attached port)
@@ -58,7 +75,13 @@ function getPoolConfig() {
   }
 
   if (typeof user === 'string') user = user.trim().replace(/^["']|["']$/g, '');
+  if (typeof password === 'string') password = password.trim().replace(/^["']|["']$/g, '');
   if (typeof database === 'string') database = database.trim().replace(/^["']|["']$/g, '');
+
+  // For Aiven cloud MySQL, the default database is 'defaultdb'
+  if (!process.env.DB_NAME && !process.env.DB_DATABASE && host.includes('aivencloud.com') && database === 'evangadi_forum') {
+    database = 'defaultdb';
+  }
 
   const isLocal = host === 'localhost' || host === '127.0.0.1';
   // SSL: Cloud MySQL hosts (Aiven, TiDB, PlanetScale, Railway) require SSL.
