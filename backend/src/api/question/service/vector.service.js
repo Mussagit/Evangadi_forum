@@ -3,16 +3,23 @@ import { GoogleGenAI } from "@google/genai";
 import { safeExecute } from "../../../../db/config.js";
 import { ServiceUnavailableError } from "../../../utils/errors/index.js";
 const GEMINI_EMBEDDING_MODEL =
-    process.env.GEMINI_EMBEDDING_MODEL;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+    process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004";
 const RECOMMEND_THRESHOLD = Number(process.env.RECOMMEND_THRESHOLD) || 0.75; 
 const RECOMMEND_K = Number(process.env.RECOMMEND_K) || 5;
 
-if (!GEMINI_API_KEY) {
-	throw new Error("GEMINI_API_KEY environment variable is required");
+let aiClientInstance = null;
+function getAiClient() {
+	const apiKey = process.env.GEMINI_API_KEY?.trim();
+	if (!apiKey) {
+		throw new ServiceUnavailableError(
+			"GEMINI_API_KEY environment variable is required for AI vector operations"
+		);
+	}
+	if (!aiClientInstance) {
+		aiClientInstance = new GoogleGenAI({ apiKey });
+	}
+	return aiClientInstance;
 }
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
 /**
  * Utility to collapse consecutive whitespace characters into a single space
@@ -98,7 +105,8 @@ export async function generateQuestionEmbedding(sourceText, options = {}) {
 	const { taskType = "RETRIEVAL_DOCUMENT" } = options;
 
 	try {
-		const response = await ai.models.embedContent({
+		const client = getAiClient();
+		const response = await client.models.embedContent({
 			model: GEMINI_EMBEDDING_MODEL,
 			contents: sourceText,
 			config: {

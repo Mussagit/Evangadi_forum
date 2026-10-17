@@ -9,7 +9,7 @@ import axios from 'axios';
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL;
   if (envUrl && envUrl.trim().length > 0) {
-    return envUrl.trim();
+    return envUrl.trim().replace(/\/+$/, '');
   }
   if (typeof window !== 'undefined' && window.location?.origin) {
     const isLocalhost =
@@ -19,8 +19,8 @@ const getBaseUrl = () => {
       return 'http://localhost:3779';
     }
   }
-  // Production Render backend URL
-  return 'https://evangadi-forum-l34l.onrender.com';
+  // Production Render backend URL (live active service)
+  return 'https://ai-powered-forum.onrender.com';
 };
 
 /**

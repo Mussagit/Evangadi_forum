@@ -6,11 +6,11 @@ import {
   UnauthenticatedError,
 } from '../../../utils/errors/index.js';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'evangadi-forum-jwt-secret-secure-token-2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+if (!process.env.JWT_SECRET) {
+  console.warn('[Security Notice] JWT_SECRET is not set in environment variables. Using fallback secret.');
 }
 
 const normalizeEmail = email => email.trim().toLowerCase();

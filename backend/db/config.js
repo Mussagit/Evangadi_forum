@@ -69,9 +69,6 @@ function getPoolConfig() {
       }
     }
     host = host.replace(/\/+$/, '').trim();
-    if (host.includes('musssae2484')) {
-      host = host.replace('musssae2484', 'mussae2484');
-    }
   }
 
   if (typeof user === 'string') user = user.trim().replace(/^["']|["']$/g, '');
@@ -89,6 +86,16 @@ function getPoolConfig() {
   const useSsl = process.env.DB_SSL !== undefined
     ? process.env.DB_SSL === 'true'
     : !isLocal;
+
+  console.log('[DB Config] Initialized settings:', {
+    host,
+    port: port || 3306,
+    user,
+    database,
+    useSsl,
+    hasPassword: Boolean(password),
+    passLength: password ? password.length : 0,
+  });
 
   const poolOptions = {
     host,
