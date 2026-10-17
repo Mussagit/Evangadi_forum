@@ -1,9 +1,16 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { db, host, port as dbPort, database as dbName, useSsl } from './db/config.js';
 import { initDbSchema } from './db/initDb.js';
 import { mainRouter } from './src/api/routes.js';
 import { errorHandler } from './src/middleware/error-handler.js';
 import cors from 'cors';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
 
 const app = express();
 const port = process.env.PORT || 3779;
@@ -44,8 +51,22 @@ app.use('/api', (req, res, next) => {
 
 app.use('/api', mainRouter);
 
-// Root welcome & API status dashboard
-app.get('/', (req, res) => {
+// Serve static frontend files if pre-built distribution exists
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+}
+
+// Single Page Application (SPA) routing: serve index.html for all non-API GET requests
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api') || req.path === '/health') return next();
+
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  // Fallback status card if frontend has not been compiled into dist
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
