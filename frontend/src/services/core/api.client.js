@@ -20,7 +20,7 @@ const getBaseUrl = () => {
     }
   }
   // Production Render backend URL (live active service)
-  return 'https://ai-powered-forum.onrender.com';
+  return 'https://ai-powered-evangadi-backend.onrender.com';
 };
 
 /**
